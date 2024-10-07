@@ -49,6 +49,18 @@
             margin-top: 20px;
             font-size: 18px;
         }
+
+        /* New CSS for positioning grid and sum display side by side */
+        .grid-sum-wrapper {
+            display: flex;
+            align-items: center; /* Vertically center the elements */
+            justify-content: space-between; /* Ensure space between the grid and sum display */
+        }
+
+        .sum-display {
+            margin-left: 40px; /* Space between grid and sum display */
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
@@ -57,8 +69,16 @@
     <!-- Title -->
     <h1>Modelo de Ising para Beta=1 aplicando Metropolis-Hasting  </h1>
 
-    <!-- SVG Grid -->
-    <svg id="grid" width="1000" height="1000"></svg>
+    <!-- Wrapper to position grid and sum display side by side -->
+    <div class="grid-sum-wrapper">
+        <!-- SVG Grid -->
+        <svg id="grid" width="1000" height="1000"></svg>
+
+        <!-- Sum Display -->
+        <div class="sum-display">
+            <span> Magnetización: </span><span id="sumCounter">0</span>
+        </div>
+    </div>
 
     <!-- Slider to control animation speed -->
     <div class="slider-container">
@@ -103,8 +123,9 @@
         const matrixSize = matrices[0].length; // Number of rows in the first matrix
         const circleSize = 40; // Diameter of the circles
         const padding = 10; // Space between circles
-        console.log('Processing matrix size:', matrixSize);
-        console.log('Initial matrix:', matrices[0]);
+        const matrixSums = matrices.map(matrix => matrix.flat().reduce((sum, val) => sum + val, 0)); // Calculate sums of each matrix
+
+        console.log('Matrix sums:', matrixSums); // Debug output for matrix sums
 
         const svg = d3.select("#grid")
             .attr("width", matrixSize * (circleSize + padding))
@@ -140,7 +161,7 @@
         }
 
         // Animate through matrices
-        function animateMatrices(matrices, index = 0) {
+        function animateMatrices(matrices, sums, index = 0) {
             const speed = document.getElementById("speedSlider").value; // Get the current speed from the slider
             if (index < matrices.length) {
                 drawMatrix(matrices[index]);
@@ -148,12 +169,17 @@
                 // Update the iteration counter
                 document.getElementById("iterationCounter").innerText = index + 1;
 
-                setTimeout(() => animateMatrices(matrices, index + 1), 1000 - speed); // Transition to next matrix based on slider value
+                // Update the sum display, dividing by 144 and rounding to 3 decimals
+                const adjustedSum = (sums[index] / 144).toFixed(3);
+                document.getElementById("sumCounter").innerText = adjustedSum;
+
+                setTimeout(() => animateMatrices(matrices, sums, index + 1), 1000 - speed); // Transition to next matrix based on slider value
             }
         }
 
+
         // Start the animation
-        animateMatrices(matrices);
+        animateMatrices(matrices, matrixSums);
 
         // Add event listener to update the animation speed when the slider changes
         document.getElementById("speedSlider").addEventListener('input', function () {
@@ -170,7 +196,7 @@
 
     // Execute the main function
     main();
-
 </script>
+
 </body>
 </html>

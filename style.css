@@ -1,0 +1,10 @@
+.grid-sum-wrapper {
+    display: flex;
+    align-items: center; /* Vertically center the elements */
+    justify-content: space-between; /* Ensure space between the grid and sum display */
+}
+
+.sum-display {
+    margin-left: 20px; /* Space between grid and sum display */
+    font-size: 18px;
+}
