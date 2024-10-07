@@ -55,7 +55,7 @@
 
 <div class="container">
     <!-- Title -->
-    <h1>Modelo de Ising para Beta=1 aplicando Metropolis-Hasting con Gibbs</h1>
+    <h1>Modelo de Ising para Beta=1 aplicando Metropolis-Hasting</h1>
 
     <!-- SVG Grid -->
     <svg id="grid" width="1000" height="1000"></svg>
@@ -128,7 +128,7 @@
                 .attr("cx", (d, i) => (i % matrixSize) * (circleSize + padding) + circleSize / 2)
                 .attr("cy", (d, i) => Math.floor(i / matrixSize) * (circleSize + padding) + circleSize / 2)
                 .attr("r", 0) // Start radius at 0 for entering circles
-                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "red" : "white")
+                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white")
                 .transition()
                 .duration(40) // Duration of enter transition
                 .attr("r", circleSize / 2); // Final radius
@@ -136,7 +136,7 @@
             // Update existing circles
             circles.transition()
                 .duration(10)
-                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "red" : "white");
+                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
         }
 
         // Animate through matrices
@@ -163,7 +163,7 @@
 
     // Example usage
     async function main() {
-        const matrices = await loadMatricesFromFile('matri5.txt');
+        const matrices = await loadMatricesFromFile('matri1.txt');
         console.log('Loaded matrices:', matrices); // Debug output
         processMatrices(matrices);
     }
