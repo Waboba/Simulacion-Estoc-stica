@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Read Text File with D3</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    .line {
+      text-align: left;
+      font-size: 24px;
+      margin: 5px 0;
+      white-space: pre;
+      position: relative;
+    }
+    .letter {
+      transition: opacity 0.2s ease, transform 0.2s ease; /* Reduced duration */
+      will-change: opacity, transform; /* Optimization */
+      opacity: 0.2; /* Default opacity (faded state) */
+    }
+    .highlighted {
+      opacity: 1; /* Max opacity for highlighted letters */
+    }
+  </style>
+</head>
+<body>
+<div id="output"></div>
+
+<script>
+  window.onload = function() {
+    const filePath = 'secuenciasReal.txt'; // Path to your text file
+    const filePath2 = 'ejemploReal.txt'; // Path to your text file
+    let lists = []; // Declare lists here to make it available globally within this function
+
+    fetch(filePath2)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.text();
+            })
+            .then(content => {
+              const lines2 = content.split('\n'); // Split content by new lines
+              for (let i = 0; i < lines2.length; i++) {
+                if (lines2[i].trim() === '*') {
+                  continue; // Skip lines with '*'
+                }
+                // Split the line into elements and add to lists
+                const elements = lines2[i].trim().split(/\s+/);
+                lists.push(elements);
+              }
+              console.log(lists); // Output the list of lists
+              return fetch(filePath); // Return the next fetch promise
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.text();
+            })
+            .then(content => {
+              const lines = content.split('*').map(line => line.trim().split(/\s+/));
+              let initialPositions = lists[0];
+              // Display all letters before any transitions
+              displayOutput(lines, initialPositions, initialPositions, false); // Show all letters
+              // Loop through lists with correct index
+              for (let j = 1; j < lists.length; j++) {
+                setTimeout(() => {
+                  displayOutput(lines, initialPositions, lists[j]);
+                  initialPositions = lists[j];
+                  console.log(initialPositions);
+                }, j * 2000); // Adjusted the time delay for each transition
+              }
+            })
+            .catch(error => {
+              console.error('There has been a problem with your fetch operation:', error);
+            });
+  };
+
+  function displayOutput(lines, initialPositions, targetPositions, firstDisplay = false) {
+    const output = d3.select('#output');
+    output.selectAll('*').remove(); // Clear previous output
+    // Calculate the minimum starting position for alignment
+    const minStartPosition = Math.min(...initialPositions);
+    lines.forEach((lineArray, lineIndex) => {
+      const lineDiv = output.append('div').attr('class', 'line');
+      const startPosition = Number(initialPositions[lineIndex]) || 0; // Fallback to 0 if undefined
+      const targetPosition = Number(targetPositions[lineIndex]) || 0; // Fallback to 0 if undefined
+
+      // Determine which letters to display
+      let displayStart = Math.max(0, targetPosition - 5); // Start 5 letters before the target
+      let displayEnd = displayStart + 10; // Show 10 letters total
+
+      // Ensure we don't go out of bounds
+      if (displayEnd > lineArray.length) {
+        displayStart = Math.max(0, lineArray.length - 10); // Adjust start if end exceeds array length
+        displayEnd = lineArray.length; // Adjust end to the array length
+      }
+
+      // Get the limited line array based on the calculated positions
+      const limitedLineArray = lineArray.slice(displayStart, displayEnd);
+
+      // Calculate how much to translate this line to align the highlighted text
+      const initialTranslation = (minStartPosition - startPosition) * 22; // Initial translation
+      const targetTranslation = (minStartPosition - targetPosition) * 22; // Target translation
+
+      // Apply the initial translation to the line
+      lineDiv.style('transform', `translateX(${initialTranslation}px)`);
+
+      // Create spans for each letter in the limited line array
+      const letterSpans = limitedLineArray.map((letter, index) => {
+        return lineDiv.append('span')
+                .attr('class', 'letter')
+                .text(letter + ' '); // Add a space after each letter
+      });
+
+      letterSpans.forEach(span => span.classed('highlighted', false));
+      // Highlight only five letters within the defined range
+      if (firstDisplay) {
+        letterSpans.forEach((span, index) => {
+          if (index < 5) {
+            span.classed('highlighted', true); // Highlight the first five letters
+          }
+        });
+      } else {
+        // Reset all letters to faded before the transition
+        letterSpans.forEach(span => span.classed('highlighted', false));
+        // Highlight letters based on the previous starting position
+        letterSpans.forEach((span, index) => {
+          if (index >= startPosition && index < startPosition + 5) {
+            span.classed('highlighted', true); // Highlight the letters
+          }
+        });
+      }
+      // Transition to new positions
+      setTimeout(() => {
+        // Reset all letters to normal before the new transition
+        letterSpans.forEach(span => span.classed('highlighted', false)); // Reset highlighted class
+        // Highlight letters based on the new target position
+        letterSpans.forEach((span, index) => {
+          if (index >= targetPosition && index < targetPosition + 5) {
+            span.classed('highlighted', true); // Highlight letters
+          }
+        });
+        // Apply the target translation
+        lineDiv.transition()
+                .duration(800) // Duration of the transition
+                .style('transform', `translateX(${targetTranslation}px)`);
+      }, 1000); // Wait 1 second before starting the transition
+    });
+  }
+</script>
+</body>
+</html>
