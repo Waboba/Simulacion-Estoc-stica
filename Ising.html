@@ -1,202 +1,155 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index</title>
+    <title>Read Text File with D3</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
-            background-color: #f0f0f0;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
         }
-
-        h1 {
-            font-family: 'Roboto', sans-serif;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .circle {
-            stroke: black;
-            stroke-width: 1px;
-        }
-
-        .slider-container {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .slider-label {
-            font-size: 16px;
-            margin-right: 10px;
-        }
-
-        .counter {
-            margin-top: 20px;
-            font-size: 18px;
-        }
-
-        /* New CSS for positioning grid and sum display side by side */
-        .grid-sum-wrapper {
-            display: flex;
-            align-items: center; /* Vertically center the elements */
-            justify-content: space-between; /* Ensure space between the grid and sum display */
-        }
-
-        .sum-display {
-            margin-left: 40px; /* Space between grid and sum display */
+        .line {
+            text-align: left;
             font-size: 24px;
+            margin: 5px 0;
+            white-space: pre;
+            position: relative;
+        }
+        .letter {
+            transition: opacity 0.3s ease;
+            opacity: 0.2; /* Default opacity (faded state) */
+        }
+        .highlighted {
+            opacity: 1; /* Max opacity for highlighted letters */
         }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <!-- Title -->
-    <h1>Modelo de Ising para Beta=0.1 aplicando Metropolis-Hasting  </h1>
-
-    <!-- Wrapper to position grid and sum display side by side -->
-    <div class="grid-sum-wrapper">
-        <!-- SVG Grid -->
-        <svg id="grid" width="1000" height="1000"></svg>
-
-        <!-- Sum Display -->
-        <div class="sum-display">
-            <span> Magnetización: </span><span id="sumCounter">0</span>
-        </div>
-    </div>
-
-    <!-- Slider to control animation speed -->
-    <div class="slider-container">
-        <label for="speedSlider" class="slider-label">Velocidad de animación:</label>
-        <input type="range" id="speedSlider" min="10" max="1000" value="50">
-    </div>
-
-    <!-- Counter to show current iteration -->
-    <div class="counter">
-        <span>Iteración actual: </span><span id="iterationCounter">0</span>
-    </div>
-</div>
+<div id="output"></div>
 
 <script>
-    async function loadMatricesFromFile(filePath) {
-        const response = await fetch(filePath);
-        const text = await response.text();
+    window.onload = function() {
+        const filePath = 'secuenciasReal.txt'; // Path to your text file
+        const filePath2 = 'ejemploReal.txt'; // Path to your text file
+        let lists = []; // Declare lists here to make it available globally within this function
 
-        // Split the text by "*" to separate the matrices
-        const sections = text.trim().split('*').map(section => section.trim()).filter(section => section !== '');
+        fetch(filePath2)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(content => {
+                const lines2 = content.split('\n'); // Split content by new lines
 
-        const matrices = [];
+                for (let i = 0; i < lines2.length; i++) {
+                    if (lines2[i].trim() === '*') {
+                        continue; // Skip lines with '*'
+                    }
 
-        // Process each section (each matrix)
-        sections.forEach(section => {
-            // Split by newline and filter out empty lines or lines containing just '-'
-            const lines = section.split('\n').map(line => line.trim()).filter(line => line !== '' && line !== '-');
+                    // Split the line into elements and add to lists
+                    const elements = lines2[i].trim().split(/\s+/);
+                    lists.push(elements);
+                }
 
-            // Convert lines to a matrix (array of arrays)
-            const matrix = lines.map(line => line.split(',').map(Number)); // Split by commas and convert to numbers
+                console.log(lists); // Output the list of lists
+                return fetch(filePath); // Return the next fetch promise
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(content => {
+                const lines = content.split('*').map(line => line.trim().split(/\s+/));
+                let initialPositions = lists[0];
 
-            matrices.push(matrix); // Each matrix is an array of arrays
+                // Display the first array highlighted before transitions
+                displayOutput(lines, initialPositions, initialPositions); // Highlight all letters of the first array
 
-            // Log the matrix to the console
-            console.log('Matrix:', matrix);
-        });
+                // Loop through lists with correct index
+                for (let j = 1; j < lists.length; j++) {
+                    setTimeout(() => {
+                        displayOutput(lines, initialPositions, lists[j]);
+                        initialPositions = lists[j];
+                        console.log(initialPositions);
+                    }, j * 4000); // Adjust the time delay for each transition
+                }
+            })
+            .catch(error => {
+                console.error('There has been a problem with your fetch operation:', error);
+            });
+    };
 
-        return matrices; // Return an array of matrices
-    }
+    function displayOutput(lines, initialPositions, targetPositions) {
+        const output = d3.select('#output');
+        output.selectAll('*').remove(); // Clear previous output
 
-    function processMatrices(matrices) {
-        const matrixSize = matrices[0].length; // Number of rows in the first matrix
-        const circleSize = 40; // Diameter of the circles
-        const padding = 10; // Space between circles
-        const matrixSums = matrices.map(matrix => matrix.flat().reduce((sum, val) => sum + val, 0)); // Calculate sums of each matrix
+        // Calculate the minimum starting position for alignment
+        const minStartPosition = Math.min(...initialPositions);
 
-        console.log('Matrix sums:', matrixSums); // Debug output for matrix sums
+        lines.forEach((lineArray, lineIndex) => {
+            const lineDiv = output.append('div').attr('class', 'line');
 
-        const svg = d3.select("#grid")
-            .attr("width", matrixSize * (circleSize + padding))
-            .attr("height", matrixSize * (circleSize + padding));
+            const startPosition = initialPositions[lineIndex] || 0; // Fallback to 0 if undefined
+            const targetPosition = targetPositions[lineIndex] || 0; // Fallback to 0 if undefined
 
-        function drawMatrix(matrix) {
-            const circles = svg.selectAll(".circle")
-                .data(matrix.flat(), (d, i) => i); // Use index as key for transitions
+            // Calculate how much to translate this line to align the highlighted text
+            const initialTranslation = (minStartPosition - startPosition) * 22; // Initial translation
+            const targetTranslation = (minStartPosition - targetPosition) * 22; // Target translation
 
-            // Exit selection for old circles
-            circles.exit()
-                .transition()
-                .duration(10) // Duration of exit transition
-                .attr("r", 0) // Scale down to 0
-                .remove(); // Remove from DOM after transition
+            // Apply the initial translation to the line
+            lineDiv.style('transform', `translateX(${initialTranslation}px)`);
 
-            // Enter selection for new circles
-            const newCircles = circles.enter()
-                .append("circle")
-                .attr("class", "circle")
-                .attr("cx", (d, i) => (i % matrixSize) * (circleSize + padding) + circleSize / 2)
-                .attr("cy", (d, i) => Math.floor(i / matrixSize) * (circleSize + padding) + circleSize / 2)
-                .attr("r", 0) // Start radius at 0 for entering circles
-                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white")
-                .transition()
-                .duration(40) // Duration of enter transition
-                .attr("r", circleSize / 2); // Final radius
+            // Create spans for each letter
+            const letterSpans = lineArray.map((letter, index) => {
+                return lineDiv.append('span')
+                    .attr('class', 'letter')
+                    .text(letter + ' '); // Add a space after each letter
+            });
 
-            // Update existing circles
-            circles.transition()
-                .duration(10)
-                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
-        }
+            // Highlight letters based on the initial position
+            if (initialPositions === targetPositions) {
+                letterSpans.forEach(span => span.classed('highlighted', true)); // Highlight all letters
+            } else {
+                // Reset all letters to faded before the transition
+                letterSpans.forEach(span => span.classed('highlighted', false));
 
-        // Animate through matrices
-        function animateMatrices(matrices, sums, index = 0) {
-            const speed = document.getElementById("speedSlider").value; // Get the current speed from the slider
-            if (index < matrices.length) {
-                drawMatrix(matrices[index]);
-
-                // Update the iteration counter
-                document.getElementById("iterationCounter").innerText = index + 1;
-
-                // Update the sum display, dividing by 144 and rounding to 3 decimals
-                const adjustedSum = (sums[index] / 144).toFixed(3);
-                document.getElementById("sumCounter").innerText = adjustedSum;
-
-                setTimeout(() => animateMatrices(matrices, sums, index + 1), 1000 - speed); // Transition to next matrix based on slider value
+                // Highlight only five letters within the defined range
+                letterSpans.forEach((span, index) => {
+                    if (index >= startPosition && index < startPosition + 5) {
+                        span.classed('highlighted', true); // Highlight the letters
+                    }
+                });
             }
-        }
 
+            // Transition to new positions
+            setTimeout(() => {
+                // Reset all letters to normal before the new transition
+                letterSpans.forEach(span => span.classed('highlighted', false)); // Reset highlighted class
 
-        // Start the animation
-        animateMatrices(matrices, matrixSums);
+                // Highlight letters based on the new target position
+                letterSpans.forEach((span, index) => {
+                    if (index >= targetPosition && index < targetPosition + 5) {
+                        span.classed('highlighted', true); // Highlight letters
+                    }
+                });
 
-        // Add event listener to update the animation speed when the slider changes
-        document.getElementById("speedSlider").addEventListener('input', function () {
-            console.log('Updated speed:', this.value); // Log the new speed for debugging
+                // Apply the target translation
+                lineDiv.transition()
+                    .duration(1000) // Duration of the transition
+                    .style('transform', `translateX(${targetTranslation}px)`);
+            }, 2000); // Wait 2 seconds before starting the transition
         });
     }
-
-    // Example usage
-    async function main() {
-        const matrices = await loadMatricesFromFile('matri6.txt');
-        console.log('Loaded matrices:', matrices); // Debug output
-        processMatrices(matrices);
-    }
-
-    // Execute the main function
-    main();
 </script>
-
 </body>
 </html>
