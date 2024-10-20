@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>gif digitos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {height: 100%;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .line {
+            text-align: left;
+            font-size: 24px;
+            margin: 5px 0;
+            white-space: pre;
+            position: relative;
+        }
+        .letter {
+            transition: opacity 0.2s ease, transform 0.2s ease; /* Reduced duration */
+            will-change: opacity, transform; /* Optimization */
+            opacity: 0.2; /* Default opacity (faded state) */
+        }
+        .highlighted {
+            opacity: 1; /* Max opacity for highlighted letters */
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+<h1>Predicciones Red Neuronal "skit-learn digits"</h1>
+<img src="predicciones.gif" alt="Your GIF" />
+</body>
+</html>

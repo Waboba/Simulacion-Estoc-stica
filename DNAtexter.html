@@ -3,16 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Read Text File with D3</title>
+  <title>ADN reader</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #f4f4f4;
+    body, html {height: 100%;
+    margin: 0;
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    background-color: #f0f0f0;
+    }
+    h1 {
+      font-family: 'Roboto', sans-serif;
+      font-weight: 700;
+      margin-bottom: 20px;
     }
     .line {
       text-align: left;
@@ -28,11 +35,17 @@
     }
     .highlighted {
       opacity: 1; /* Max opacity for highlighted letters */
+      font-weight: 700;
     }
   </style>
 </head>
 <body>
-<div id="output"></div>
+<div id="title">
+  <h1> Alineamiento de motivos mediante Metropolis-Hastings  </h1>
+</div>
+<div id="output">
+</div>
+
 
 <script>
   window.onload = function() {
@@ -109,8 +122,8 @@
       const limitedLineArray = lineArray.slice(displayStart, displayEnd);
 
       // Calculate how much to translate this line to align the highlighted text
-      const initialTranslation = (minStartPosition - startPosition) * 22; // Initial translation
-      const targetTranslation = (minStartPosition - targetPosition) * 22; // Target translation
+      const initialTranslation = (minStartPosition - startPosition) * 21.5+50; // Initial translation
+      const targetTranslation = (minStartPosition - targetPosition) * 21.5+50; // Target translation
 
       // Apply the initial translation to the line
       lineDiv.style('transform', `translateX(${initialTranslation}px)`);
