@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADN reader</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            font-size: 6vw; /* Responsive font size */
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+
+        #output {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        .line {
+            font-size: 4vw; /* Responsive font size */
+            margin: 5px 0;
+            white-space: nowrap;
+            position: relative;
+            text-align: center;
+        }
+
+        .letter {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            will-change: opacity, transform;
+            opacity: 0.2;
+        }
+
+        .highlighted {
+            opacity: 1;
+            font-weight: 700;
+        }
+
+        svg {
+            position: absolute;
+            z-index: 2;
+            width: 100vw; /* Responsive width */
+            height: 100vh; /* Responsive height */
+        }
+
+        /* Media query for smaller screens */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 8vw;
+                margin-bottom: 15px;
+            }
+            .line {
+                font-size: 5vw;
+            }
+            svg {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="title">
+    <h1 id="main-title">Alineamiento de motivos mediante Metropolis-Hastings</h1>
+</div>
+<div id="rectangulos"></div>
+<div id="output"></div>
+
+<script>
+    window.onload = function() {
+        const titleElement = document.getElementById('main-title');
+        const titleRect = titleElement.getBoundingClientRect();
+
+        const svg = d3.select("#rectangulos").append("svg")
+            .attr("width", "100vw")
+            .attr("height", "100vh");
+
+        const gradient1 = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "gradient-opacity1")
+            .attr("x1", "70%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "0%");
+
+        gradient1.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 1);
+
+        gradient1.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 0.1);
+
+        const gradient2 = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "gradient-opacity2")
+            .attr("x1", "30%")
+            .attr("y1", "0%")
+            .attr("x2", "0%")
+            .attr("y2", "0%");
+
+        gradient2.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 1);
+
+        gradient2.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 0.1);
+
+        svg.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", "50vw")
+            .attr("height", "50vh")
+            .attr("fill", "url(#gradient-opacity1)")
+            .attr("rx", 5)
+            .attr("ry", 5)
+            .attr("opacity",1);
+
+        svg.append("rect")
+            .attr("x", "50vw")
+            .attr("y", 0)
+            .attr("width", "50vw")
+            .attr("height", "50vh")
+            .attr("fill", "url(#gradient-opacity2)")
+            .attr("rx", 5)
+            .attr("ry", 5)
+            .attr("opacity",1);
+
+        const filePath = 'secuenciasReal.txt';
+        const filePath2 = 'ejemploReal.txt';
+        let lists = [];
+
+        fetch(filePath2)
+            .then(response => response.ok ? response.text() : Promise.reject('Failed to load'))
+            .then(content => {
+                const lines2 = content.split('\n');
+                for (let line of lines2) {
+                    if (line.trim() !== '*') {
+                        lists.push(line.trim().split(/\s+/));
+                    }
+                }
+                return fetch(filePath);
+            })
+            .then(response => response.ok ? response.text() : Promise.reject('Failed to load'))
+            .then(content => {
+                const lines = content.split('*').map(line => line.trim().split(/\s+/));
+                let initialPositions = lists[0];
+                displayOutput(lines, initialPositions, initialPositions, true);
+
+                for (let j = 1; j < lists.length; j++) {
+                    setTimeout(() => {
+                        displayOutput(lines, initialPositions, lists[j]);
+                        initialPositions = lists[j];
+                    }, j * 4000);
+                }
+            })
+            .catch(error => console.error(error));
+    };
+
+    function displayOutput(lines, initialPositions, targetPositions, firstDisplay = false) {
+        const output = d3.select('#output');
+        output.selectAll('*').remove();
+        const titleCenter = document.getElementById('main-title').getBoundingClientRect().width / 2;
+
+        lines.forEach((lineArray, lineIndex) => {
+            const lineDiv = output.append('div').attr('class', 'line');
+            const startPosition = Number(initialPositions[lineIndex]) || 0;
+            const targetPosition = Number(targetPositions[lineIndex]) || 0;
+            const charWidth = 21.5;
+            const initialTranslation = titleCenter - startPosition * charWidth;
+            const targetTranslation = titleCenter - targetPosition * charWidth;
+
+            lineDiv.style('transform', `translateX(${initialTranslation}px)`);
+            const letterSpans = lineArray.map((letter) => lineDiv.append('span').attr('class', 'letter').text(letter + ' '));
+            letterSpans.forEach(span => span.classed('highlighted', false));
+
+            if (firstDisplay) {
+                letterSpans.slice(0, 5).forEach(span => span.classed('highlighted', true));
+            } else {
+                letterSpans.slice(startPosition, startPosition + 5).forEach(span => span.classed('highlighted', true));
+            }
+
+            setTimeout(() => {
+                letterSpans.forEach(span => span.classed('highlighted', false));
+                letterSpans.slice(targetPosition, targetPosition + 5).forEach(span => span.classed('highlighted', true));
+                lineDiv.transition().duration(3000).style('transform', `translateX(${targetTranslation}px)`);
+            }, 1000);
+        });
+    }
+</script>
+</body>
+</html>
