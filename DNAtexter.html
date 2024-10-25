@@ -23,13 +23,16 @@
       font-weight: 700;
       margin-bottom: 20px;
       text-align: center;
+      position: relative;
+      z-index: 1; /* Ensure the title is lower than the rectangle */
     }
 
     #output {
       display: flex;
       flex-direction: column;
-      align-items: center; /* Center lines horizontally */
-      width: 100%; /* Full width */
+      align-items: center;
+      width: 100%;
+      position: relative;
     }
 
     .line {
@@ -49,18 +52,94 @@
       opacity: 1;
       font-weight: 700;
     }
+
+    svg {
+      position: absolute;
+      z-index: 2; /* Ensure rectangle is on top */
+    }
   </style>
 </head>
 <body>
 <div id="title">
-  <h1 id="main-title"> Alineamiento de motivos mediante Metropolis-Hastings </h1>
+  <h1 id="main-title">Alineamiento de motivos mediante Metropolis-Hastings</h1>
 </div>
+<div id="rectangulos"></div>
 <div id="output"></div>
 
 <script>
   window.onload = function() {
-    const filePath = 'secuenciasReal.txt'; // Path to your text file
-    const filePath2 = 'ejemploReal.txt'; // Path to your example file
+    const titleElement = document.getElementById('main-title');
+    const titleRect = titleElement.getBoundingClientRect();
+
+    // Add an SVG to contain the rectangle
+    const svg = d3.select("#rectangulos").append("svg")
+            .attr("width", 10000) // Set the width to match the title's width
+            .attr("height", 10000)
+            .attr("transform", "translate(" + -1000 + "," + 0 + ")")// Set the height to cover the title
+            //.style("position", "absolute")
+
+    const gradient1 = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "gradient-opacity1")
+            .attr("x1", "70%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "0%");
+
+    // Gradient stops with opacity transition from 0.1 to 1
+    gradient1.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 1); // Start with lower opacity
+
+    gradient1.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 0.1); // End with higher opacity
+    const gradient2 = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "gradient-opacity2")
+            .attr("x1", "30%")
+            .attr("y1", "0%")
+            .attr("x2", "0%")
+            .attr("y2", "0%");
+
+    // Gradient stops with opacity transition from 0.1 to 1
+    gradient2.append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 1); // Start with lower opacity
+
+    gradient2.append("stop")
+            .attr("offset", "100%")
+            .attr("stop-color", "#f0f0f0")
+            .attr("stop-opacity", 0.1);
+
+
+    // Add the rectangle on top of the title
+    let rect1=svg.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", 900) // Make the rectangle cover the title width
+            .attr("height", 1300) // Make the rectangle cover the title height
+            .attr("fill", "url(#gradient-opacity1)")
+            .attr("rx", 5)
+            .attr("ry", 5)
+            .attr("opacity",1);
+    let rect2=svg.append("rect")
+            .attr("x", 1140)
+            .attr("y", 0)
+            .attr("width", 900) // Make the rectangle cover the title width
+            .attr("height", 1300) // Make the rectangle cover the title height
+            .attr("fill", "url(#gradient-opacity2)")
+            .attr("rx", 5)
+            .attr("ry", 5)
+            .attr("opacity",1);
+
+
+    // Additional logic for fetching and displaying content can remain the same
+    const filePath = 'secuenciasReal.txt';
+    const filePath2 = 'ejemploReal.txt';
     let lists = [];
 
     fetch(filePath2)
@@ -80,7 +159,7 @@
                 lists.push(elements);
               }
 
-              return fetch(filePath); // Fetch the main file
+              return fetch(filePath);
             })
             .then(response => {
               if (!response.ok) {
@@ -92,15 +171,12 @@
               const lines = content.split('*').map(line => line.trim().split(/\s+/));
               let initialPositions = lists[0];
 
-              // Display all letters before transitions
               displayOutput(lines, initialPositions, initialPositions, true);
 
-              // Loop through positions and animate transitions
               for (let j = 1; j < lists.length; j++) {
                 setTimeout(() => {
                   displayOutput(lines, initialPositions, lists[j]);
                   initialPositions = lists[j];
-
                 }, j * 4000);
               }
             })
@@ -111,10 +187,10 @@
 
   function displayOutput(lines, initialPositions, targetPositions, firstDisplay = false) {
     const output = d3.select('#output');
-    output.selectAll('*').remove(); // Clear previous output
+    output.selectAll('*').remove();
 
     const titleElement = document.getElementById('main-title');
-    const titleCenter = titleElement.getBoundingClientRect().width / 2; // Calculate the center of the title
+    const titleCenter = titleElement.getBoundingClientRect().width / 2;
 
     lines.forEach((lineArray, lineIndex) => {
       const lineDiv = output.append('div').attr('class', 'line');
@@ -122,31 +198,27 @@
       const startPosition = Number(initialPositions[lineIndex]) || 0;
       const targetPosition = Number(targetPositions[lineIndex]) || 0;
 
-      // Approximate width of each character in pixels
       const charWidth = 21.5;
-      const initialTranslation = titleCenter - startPosition * charWidth; // Align with title center
-      const targetTranslation = titleCenter - targetPosition * charWidth; // Align with title center
+      const initialTranslation = titleCenter - startPosition * charWidth;
+      const targetTranslation = titleCenter - targetPosition * charWidth;
 
-      lineDiv.style('transform', `translateX(${initialTranslation}px)`); // Apply initial translation
+      lineDiv.style('transform', `translateX(${initialTranslation}px)`);
 
-      // Create spans for each letter
       const letterSpans = lineArray.map((letter, index) => {
         return lineDiv.append('span')
                 .attr('class', 'letter')
-                .text(letter + ' '); // Add space after each letter
+                .text(letter + ' ');
       });
 
       letterSpans.forEach(span => span.classed('highlighted', false));
 
       if (firstDisplay) {
-        // Highlight first 5 letters
         letterSpans.forEach((span, index) => {
           if (index < 5) {
             span.classed('highlighted', true);
           }
         });
       } else {
-        // Highlight letters based on previous starting position
         letterSpans.forEach((span, index) => {
           if (index >= startPosition && index < startPosition + 5) {
             span.classed('highlighted', true);
@@ -166,6 +238,7 @@
         lineDiv.transition()
                 .duration(3000)
                 .style('transform', `translateX(${targetTranslation}px)`);
+
       }, 1000);
     });
   }

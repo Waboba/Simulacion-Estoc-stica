@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Simulacion-Estoc-stica.iml" filepath="$PROJECT_DIR$/.idea/Simulacion-Estoc-stica.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../dataviz/.idea/dataviz.iml" filepath="$PROJECT_DIR$/../dataviz/.idea/dataviz.iml" />
     </modules>
   </component>
 </project>
