@@ -120,12 +120,12 @@
     }
 
     function processMatrices(matrices) {
-        const matrixSize = matrices[0].length; // Number of rows in the first matrix
-        const circleSize = 40; // Diameter of the circles
-        const padding = 10; // Space between circles
-        const matrixSums = matrices.map(matrix => matrix.flat().reduce((sum, val) => sum + val, 0)); // Calculate sums of each matrix
+        const matrixSize = matrices[0].length;
+        const circleSize = 40;
+        const padding = 10;
+        const matrixSums = matrices.map(matrix => matrix.flat().reduce((sum, val) => sum + val, 0));
 
-        console.log('Matrix sums:', matrixSums); // Debug output for matrix sums
+        console.log('Matrix sums:', matrixSums);
 
         const svg = d3.select("#grid")
             .attr("width", matrixSize * (circleSize + padding))
@@ -133,68 +133,64 @@
 
         function drawMatrix(matrix) {
             const circles = svg.selectAll(".circle")
-                .data(matrix.flat(), (d, i) => i); // Use index as key for transitions
+                .data(matrix.flat(), (d, i) => i);
 
-            // Exit selection for old circles
+
             circles.exit()
                 .transition()
-                .duration(10) // Duration of exit transition
-                .attr("r", 0) // Scale down to 0
-                .remove(); // Remove from DOM after transition
+                .duration(10)
+                .attr("r", 0)
+                .remove();
 
-            // Enter selection for new circles
+
             const newCircles = circles.enter()
                 .append("circle")
                 .attr("class", "circle")
                 .attr("cx", (d, i) => (i % matrixSize) * (circleSize + padding) + circleSize / 2)
                 .attr("cy", (d, i) => Math.floor(i / matrixSize) * (circleSize + padding) + circleSize / 2)
-                .attr("r", 0) // Start radius at 0 for entering circles
+                .attr("r", 0)
                 .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white")
                 .transition()
-                .duration(40) // Duration of enter transition
-                .attr("r", circleSize / 2); // Final radius
+                .duration(40)
+                .attr("r", circleSize / 2);
 
-            // Update existing circles
             circles.transition()
                 .duration(10)
                 .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
         }
 
-        // Animate through matrices
+
         function animateMatrices(matrices, sums, index = 0) {
-            const speed = document.getElementById("speedSlider").value; // Get the current speed from the slider
+            const speed = document.getElementById("speedSlider").value;
             if (index < matrices.length) {
                 drawMatrix(matrices[index]);
 
-                // Update the iteration counter
                 document.getElementById("iterationCounter").innerText = index + 1;
 
-                // Update the sum display, dividing by 144 and rounding to 3 decimals
+
                 const adjustedSum = (sums[index] / 144).toFixed(3);
                 document.getElementById("sumCounter").innerText = adjustedSum;
 
-                setTimeout(() => animateMatrices(matrices, sums, index + 1), 1000 - speed); // Transition to next matrix based on slider value
+                setTimeout(() => animateMatrices(matrices, sums, index + 1), 1000 - speed);
             }
         }
 
 
-        // Start the animation
         animateMatrices(matrices, matrixSums);
 
-        // Add event listener to update the animation speed when the slider changes
+
         document.getElementById("speedSlider").addEventListener('input', function () {
-            console.log('Updated speed:', this.value); // Log the new speed for debugging
+            console.log('Updated speed:', this.value);
         });
     }
 
-    // Example usage
+
     async function main() {
         const matrices = await loadMatricesFromFile('matri2.txt');
-        console.log('Loaded matrices:', matrices); // Debug output
+        console.log('Loaded matrices:', matrices);
         processMatrices(matrices);
     }
 
-    // Execute the main function
     main();
 </script>
 
