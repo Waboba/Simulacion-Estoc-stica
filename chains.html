@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADN Reader</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #f0f0f0;
+        }
+
+        #title {
+            width: 100%;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #plots {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        svg {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div id="title">
+    <h1 id="main-title">Comparación de energías</h1>
+</div>
+<div id="plots">
+    <svg id="line-plot-1" width="800" height="400"></svg>
+    <svg id="line-plot-2" width="800" height="400"></svg>
+</div>
+
+<script>
+    window.onload = function () {
+        const filePath1 = 'energiass.txt';
+        const filePath2 = 'energiass2.txt';
+        const margin = { top: 40, right: 20, bottom: 30, left: 50 };
+        const colors = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Initialize plots
+        const plots = [
+            { id: '#line-plot-1', data: [], current: [], lines: [], scales: {}, g: null },
+            { id: '#line-plot-2', data: [], current: [], lines: [], scales: {}, g: null }
+        ];
+
+        plots.forEach((plot, index) => {
+            const svg = d3.select(plot.id);
+            const width = +svg.attr('width') - margin.left - margin.right;
+            const height = +svg.attr('height') - margin.top - margin.bottom;
+
+            plot.scales.x = d3.scaleLinear().range([0, width]);
+            plot.scales.y = d3.scaleLinear().range([height, 0]);
+            plot.g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+            plot.g.append('g')
+                .attr('class', 'x-axis')
+                .attr('transform', `translate(0,${height})`);
+            plot.g.append('g').attr('class', 'y-axis');
+
+            svg.append('text')
+                .attr('class', 'plot-title')
+                .attr('x', margin.left + width / 2)
+                .attr('y', margin.top / 2)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '16px')
+                .style('font-weight', 'bold')
+                .text(`Método ${index + 1}`);
+        });
+
+        function parseData(content) {
+            // Parse content by splitting on '*' and converting numbers
+            return content.split('*').map(line =>
+                line.trim().split(/\s+/).map(Number)
+            );
+        }
+
+        function initializeLines(plot) {
+            const { data, g, lines, scales } = plot;
+
+            const maxY = d3.max(data.flat()) || 1;
+            scales.x.domain([0, 1]); // Start with just one point
+            scales.y.domain([d3.min(data.flat()), maxY]);
+
+            g.select('.x-axis').call(d3.axisBottom(scales.x));
+            g.select('.y-axis').call(d3.axisLeft(scales.y));
+
+            data.forEach((lineData, i) => {
+                lines.push(
+                    g.append('path')
+                        .datum([])
+                        .attr('fill', 'none')
+                        .attr('stroke', colors(i))
+                        .attr('stroke-width', 1.5)
+                );
+            });
+
+            // Initialize current data with empty arrays
+            plot.current = data.map(() => []);
+        }
+
+        function updatePlotStep(plot) {
+            const { data, current, lines, scales, g } = plot;
+
+            let maxPoints = 0; // Track the max number of points for X-axis adjustment
+            let updated = false;
+
+            current.forEach((currentLine, i) => {
+                if (currentLine.length < data[i].length) {
+                    currentLine.push(data[i][currentLine.length]);
+                    updated = true;
+                }
+                maxPoints = Math.max(maxPoints, currentLine.length);
+
+                const lineGenerator = d3.line()
+                    .x((d, idx) => scales.x(idx))
+                    .y(d => scales.y(d));
+
+                lines[i].datum(currentLine).attr('d', lineGenerator);
+            });
+
+            if (updated) {
+                // Dynamically update X-axis domain based on the current max points
+                scales.x.domain([0, maxPoints]);
+
+                g.select('.x-axis').call(d3.axisBottom(scales.x));
+            }
+
+            return updated; // Returns true if there were updates
+        }
+
+        function loadData(filePath, plot) {
+            return fetch(filePath)
+                .then(response => response.text())
+                .then(content => {
+                    plot.data = parseData(content);
+                    initializeLines(plot);
+                });
+        }
+
+        Promise.all([
+            loadData(filePath1, plots[0]),
+            loadData(filePath2, plots[1])
+        ])
+            .then(() => {
+                const interval = 500; // Time between steps (ms)
+
+                const stepInterval = setInterval(() => {
+                    let stillUpdating = false;
+
+                    plots.forEach(plot => {
+                        if (updatePlotStep(plot)) {
+                            stillUpdating = true;
+                        }
+                    });
+
+                    if (!stillUpdating) {
+                        clearInterval(stepInterval); // Stop when all lines are fully drawn
+                    }
+                }, interval);
+            })
+            .catch(error => console.error('Error loading data:', error));
+    };
+</script>
+
+
+
+</body>
+</html>
