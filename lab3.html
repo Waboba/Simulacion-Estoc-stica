@@ -33,7 +33,7 @@
 
         .circle {
             stroke: black;
-            stroke-width: 1px;
+            stroke-width: 1.5px; /* restored thicker contour */
         }
 
         .slider-container {
@@ -75,16 +75,13 @@
 <body>
 
 <div class="container">
-    <!-- Title -->
     <h1 id="pageTitle">Visualizador de matrices Ising</h1>
 
-    <!-- File Upload -->
     <div class="upload-container">
         <label for="fileInput">Sube tu archivo de matrices (.txt):</label>
         <input type="file" id="fileInput" accept=".txt">
     </div>
 
-    <!-- Wrapper for grid + magnetization -->
     <div class="grid-sum-wrapper">
         <svg id="grid" width="1000" height="1000"></svg>
         <div class="sum-display">
@@ -92,20 +89,17 @@
         </div>
     </div>
 
-    <!-- Slider -->
     <div class="slider-container">
         <label for="speedSlider" class="slider-label">Velocidad de animación:</label>
         <input type="range" id="speedSlider" min="10" max="1000" value="50">
     </div>
 
-    <!-- Iteration counter -->
     <div class="counter">
         <span>Iteración actual: </span><span id="iterationCounter">0</span>
     </div>
 </div>
 
 <script>
-    // Read the uploaded file and return its text
     function readFileContent(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -117,54 +111,57 @@
 
     function parseMatrices(text) {
         const sections = text.trim().split('*').map(s => s.trim()).filter(s => s !== '');
-        const matrices = sections.map(section => {
+        return sections.map(section => {
             const lines = section.split('\n').map(l => l.trim()).filter(l => l && l !== '-');
             return lines.map(line => line.split(',').map(Number));
         });
-        return matrices;
     }
 
     function processMatrices(matrices) {
         const matrixSize = matrices[0].length;
-        const circleSize = 40;
-        const padding = 10;
+        const circleSize = 20;
+        const padding = 5;
         const matrixSums = matrices.map(m => m.flat().reduce((sum, val) => sum + val, 0));
+        const n2 = matrixSize * matrixSize;
 
         const svg = d3.select("#grid")
             .attr("width", matrixSize * (circleSize + padding))
             .attr("height", matrixSize * (circleSize + padding));
 
-        function drawMatrix(matrix) {
-            const circles = svg.selectAll(".circle")
-                .data(matrix.flat(), (d, i) => i);
+        // Create circles once
+        const circles = svg.selectAll(".circle")
+            .data(matrices[0].flat())
+            .enter()
+            .append("circle")
+            .attr("class", "circle")
+            .attr("cx", (d, i) => (i % matrixSize) * (circleSize + padding) + circleSize / 2)
+            .attr("cy", (d, i) => Math.floor(i / matrixSize) * (circleSize + padding) + circleSize / 2)
+            .attr("r", circleSize / 2)
+            .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
 
-            circles.exit()
-                .transition().duration(10)
-                .attr("r", 0)
-                .remove();
-
-            const newCircles = circles.enter()
-                .append("circle")
-                .attr("class", "circle")
-                .attr("cx", (d, i) => (i % matrixSize) * (circleSize + padding) + circleSize / 2)
-                .attr("cy", (d, i) => Math.floor(i / matrixSize) * (circleSize + padding) + circleSize / 2)
-                .attr("r", 0)
-                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white")
-                .transition().duration(40)
-                .attr("r", circleSize / 2);
-
-            circles.transition()
-                .duration(10)
-                .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
-        }
-
+        // Animation loop
         function animateMatrices(matrices, sums, index = 0) {
             const speed = document.getElementById("speedSlider").value;
-            const n = matrices[0].length; // matrix is n x n
+            const n = matrices[0].length;
+            const useTransitions = n < 50; // Enable transitions only for small matrices
+
             if (index < matrices.length) {
-                drawMatrix(matrices[index]);
+                const data = matrices[index].flat();
+
+                if (useTransitions) {
+                    circles.data(data)
+                        .transition()
+                        .duration(60)
+                        .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
+                } else {
+                    circles.data(data)
+                        .attr("fill", d => d === 1 ? "#008080" : d === -1 ? "orange" : "white");
+                }
+
+                // Update counters
                 document.getElementById("iterationCounter").innerText = index + 1;
                 document.getElementById("sumCounter").innerText = (sums[index] / (n * n)).toFixed(3);
+
                 setTimeout(() => animateMatrices(matrices, sums, index + 1), 1000 - speed);
             }
         }
@@ -172,12 +169,10 @@
         animateMatrices(matrices, matrixSums);
     }
 
-    // Handle file upload
     document.getElementById("fileInput").addEventListener("change", async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
-        // Change title to the file name (without extension)
         const fileName = file.name.replace(/\.[^/.]+$/, "");
         document.title = fileName;
         document.getElementById("pageTitle").innerText = fileName;
@@ -185,7 +180,6 @@
         try {
             const content = await readFileContent(file);
             const matrices = parseMatrices(content);
-
             processMatrices(matrices);
         } catch (err) {
             alert("Error al leer el archivo: " + err);
